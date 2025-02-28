@@ -39,9 +39,12 @@ class LotteryApp:
         menubar = tk.Menu(self.root)
         settings_menu = tk.Menu(menubar, tearoff=0)
         settings_menu.add_command(label="颜色设置", command=self.open_color_settings)
-        settings_menu.add_separator()
-        settings_menu.add_command(label="检查更新", command=check_for_updates)
         menubar.add_cascade(label="设置", menu=settings_menu)
+        
+        update_menu = tk.Menu(menubar, tearoff=0)
+        update_menu.add_command(label="检查更新", command=check_for_updates)
+        menubar.add_cascade(label="更新", menu=update_menu)
+        
         self.root.config(menu=menubar)
 
     def setup_ui(self):
@@ -384,7 +387,9 @@ def check_for_updates():
         download_url = version_info["download_url"]
         
         # 解析版本号进行比较
-        current_parts = [int(x) for x in CURRENT_VERSION.split(".")]
+        with open("version.json", "r", encoding="utf-8") as f:
+            current_version_info = json.load(f)
+        current_parts = [int(x) for x in current_version_info["version"].split(".")]
         latest_parts = [int(x) for x in latest_version.split(".")]
         
         needs_update = False
@@ -398,14 +403,14 @@ def check_for_updates():
         if needs_update:
             if messagebox.askyesno("更新可用", 
                 f"发现新版本 {latest_version}\n当前版本 {CURRENT_VERSION}\n是否更新？"):
-                download_and_replace(download_url)
+                download_and_replace(download_url, latest_version)
         else:
             messagebox.showinfo("检查更新", "当前已是最新版本！")
             
     except Exception as e:
         messagebox.showerror("更新检查失败", f"检查更新失败：{str(e)}")
 
-def download_and_replace(download_url):
+def download_and_replace(download_url, latest_version):
     try:
         response = requests.get(download_url)
         response.raise_for_status()
@@ -421,6 +426,11 @@ def download_and_replace(download_url):
         try:
             with open(current_script, 'wb') as f:
                 f.write(response.content)
+            
+            # 更新version.json文件
+            version_info = {"version": latest_version}
+            with open("version.json", "w", encoding="utf-8") as f:
+                json.dump(version_info, f, ensure_ascii=False, indent=2)
             
             # 更新成功后删除备份
             os.remove(backup_path)
