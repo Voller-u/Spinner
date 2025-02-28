@@ -403,14 +403,14 @@ def check_for_updates():
         if needs_update:
             if messagebox.askyesno("更新可用", 
                 f"发现新版本 {latest_version}\n当前版本 {CURRENT_VERSION}\n是否更新？"):
-                download_and_replace(download_url, latest_version)
+                download_and_replace(download_url, version_info)
         else:
             messagebox.showinfo("检查更新", "当前已是最新版本！")
             
     except Exception as e:
         messagebox.showerror("更新检查失败", f"检查更新失败：{str(e)}")
 
-def download_and_replace(download_url, latest_version):
+def download_and_replace(download_url, version_info):
     try:
         response = requests.get(download_url)
         response.raise_for_status()
@@ -427,8 +427,9 @@ def download_and_replace(download_url, latest_version):
             with open(current_script, 'wb') as f:
                 f.write(response.content)
             
+            latest_version = version_info["version"]
             # 更新version.json文件
-            version_info = {"version": latest_version}
+            # version_info = {"version": latest_version}
             with open("version.json", "w", encoding="utf-8") as f:
                 json.dump(version_info, f, ensure_ascii=False, indent=2)
             
