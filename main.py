@@ -389,6 +389,7 @@ def check_for_updates():
         # 解析版本号进行比较
         with open("version.json", "r", encoding="utf-8") as f:
             current_version_info = json.load(f)
+        CURRENT_VERSION = current_version_info["version"]
         current_parts = [int(x) for x in current_version_info["version"].split(".")]
         latest_parts = [int(x) for x in latest_version.split(".")]
         
