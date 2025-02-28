@@ -386,11 +386,18 @@ def check_for_updates():
         latest_version = version_info["version"]
         download_url = version_info["download_url"]
         
-        # 解析版本号进行比较
-        with open("version.json", "r", encoding="utf-8") as f:
-            current_version_info = json.load(f)
+        try:
+            # 解析版本号进行比较
+            with open("version.json", "r", encoding="utf-8") as f:
+                current_version_info = json.load(f)
+        except FileNotFoundError:
+            if messagebox.askyesno("更新可用", 
+                f"发现新版本 {latest_version}\n当前版本未知\n是否更新？"):
+                download_and_replace(download_url, version_info)
+            return
+            
         CURRENT_VERSION = current_version_info["version"]
-        current_parts = [int(x) for x in current_version_info["version"].split(".")]
+        current_parts = [int(x) for x in CURRENT_VERSION.split(".")]
         latest_parts = [int(x) for x in latest_version.split(".")]
         
         needs_update = False
