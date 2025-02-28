@@ -159,7 +159,13 @@ class LotteryApp:
             item = self.tree.identify_row(event.y)
             if column == "#1":  # 勾选列
                 index = self.tree.index(item)
-                self.data[index]["checked"] = not self.data[index]["checked"]
+                
+                for i in range(len(self.data)):
+                    if self.data[i]["name"] == self.filtered[index]["name"]:
+                        self.data[i]["checked"] = not self.data[i]["checked"]
+                        print(self.data[i])
+                        break
+                
                 self.refresh_tree()
                 self.auto_save()
 
@@ -181,7 +187,7 @@ class LotteryApp:
 
         # 应用筛选
         filter_color = self.filter_color.get()
-        filtered = [item for item in self.data 
+        self.filtered = [item for item in self.data 
                    if filter_color == "全部" or item["color"] == filter_color]
 
         # 应用排序
@@ -190,16 +196,16 @@ class LotteryApp:
         
         if sort_key == "颜色":
             color_order = {color: idx for idx, color in enumerate(self.color_settings)}
-            filtered.sort(key=lambda x: color_order[x["color"]], reverse=reverse)
+            self.filtered.sort(key=lambda x: color_order[x["color"]], reverse=reverse)
         elif sort_key == "权重":
-            filtered.sort(key=lambda x: self.color_settings[x["color"]]["weight"], reverse=reverse)
+            self.filtered.sort(key=lambda x: self.color_settings[x["color"]]["weight"], reverse=reverse)
         elif sort_key == "概率":
-            filtered.sort(key=lambda x: x["probability"], reverse=reverse)
+            self.filtered.sort(key=lambda x: x["probability"], reverse=reverse)
 
         # 更新Treeview
         self.tree.delete(*self.tree.get_children())
         
-        for item in filtered:
+        for item in self.filtered:
             checked = "✓" if item["checked"] else ""
             color_config = self.color_settings[item["color"]]
             prob = item["probability"]

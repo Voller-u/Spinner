@@ -1,5 +1,5 @@
 {
-  "version": "1.0.5",
+  "version": "1.0.6",
   "download_url": "https://raw.githubusercontent.com/Voller-u/Spinner/master/main.py",
-  "changelog": "更新软件的更新功能"
+  "changelog": "修复改变排序规则之后勾选触发错误的bug"
 }
