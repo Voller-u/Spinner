@@ -376,7 +376,7 @@ class AddColorWindow(tk.Toplevel):
 def check_for_updates():
     try:
         # 从服务器获取最新版本信息
-        version_url = "https://your-server.com/version.json"
+        version_url = "https://raw.githubusercontent.com/Voller-u/Spinner/master/version.json"
         response = requests.get(version_url)
         version_info = response.json()
         
