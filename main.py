@@ -233,14 +233,14 @@ class LotteryApp:
                 "colors": self.color_settings,
                 "items": self.data
             }
-            with open("lottery_data.json", "w", encoding="utf-8") as f:
+            with open("data.json", "w", encoding="utf-8") as f:
                 json.dump(save_data, f, ensure_ascii=False, indent=2)
         except Exception as e:
             messagebox.showerror("保存失败", f"自动保存失败：{str(e)}")
 
     def load_data(self):
         try:
-            with open("lottery_data.json", "r", encoding="utf-8") as f:
+            with open("data.json", "r", encoding="utf-8") as f:
                 save_data = json.load(f)
                 self.color_settings = save_data.get("colors", DEFAULT_COLORS)
                 self.data = save_data.get("items", [])
