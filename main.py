@@ -2,6 +2,11 @@ import tkinter as tk
 from tkinter import ttk, messagebox, colorchooser
 import json
 import random
+import requests
+import os
+import sys
+
+CURRENT_VERSION = "1.0.0"
 
 DEFAULT_COLORS = {
     "蓝色": {"weight": 50, "color": "#3399FF"},
@@ -34,6 +39,8 @@ class LotteryApp:
         menubar = tk.Menu(self.root)
         settings_menu = tk.Menu(menubar, tearoff=0)
         settings_menu.add_command(label="颜色设置", command=self.open_color_settings)
+        settings_menu.add_separator()
+        settings_menu.add_command(label="检查更新", command=check_for_updates)
         menubar.add_cascade(label="设置", menu=settings_menu)
         self.root.config(menu=menubar)
 
@@ -365,6 +372,71 @@ class AddColorWindow(tk.Toplevel):
         }
         self.destroy()
         self.master.load_colors()
+
+def check_for_updates():
+    try:
+        # 从服务器获取最新版本信息
+        version_url = "https://your-server.com/version.json"
+        response = requests.get(version_url)
+        version_info = response.json()
+        
+        latest_version = version_info["version"]
+        download_url = version_info["download_url"]
+        
+        # 解析版本号进行比较
+        current_parts = [int(x) for x in CURRENT_VERSION.split(".")]
+        latest_parts = [int(x) for x in latest_version.split(".")]
+        
+        needs_update = False
+        for current, latest in zip(current_parts, latest_parts):
+            if latest > current:
+                needs_update = True
+                break
+            elif current > latest:
+                break
+        
+        if needs_update:
+            if messagebox.askyesno("更新可用", 
+                f"发现新版本 {latest_version}\n当前版本 {CURRENT_VERSION}\n是否更新？"):
+                download_and_replace(download_url)
+        else:
+            messagebox.showinfo("检查更新", "当前已是最新版本！")
+            
+    except Exception as e:
+        messagebox.showerror("更新检查失败", f"检查更新失败：{str(e)}")
+
+def download_and_replace(download_url):
+    try:
+        response = requests.get(download_url)
+        response.raise_for_status()
+        
+        # 获取当前脚本路径
+        current_script = os.path.abspath(__file__)
+        
+        # 创建备份
+        backup_path = current_script + ".backup"
+        os.replace(current_script, backup_path)
+        
+        # 保存新文件
+        try:
+            with open(current_script, 'wb') as f:
+                f.write(response.content)
+            
+            # 更新成功后删除备份
+            os.remove(backup_path)
+            
+            if messagebox.askyesno("更新完成", "程序已更新，需要重启才能生效。是否立即重启？"):
+                python = sys.executable
+                os.execl(python, python, *sys.argv)
+                
+        except Exception as e:
+            # 如果保存新文件失败，恢复备份
+            if os.path.exists(backup_path):
+                os.replace(backup_path, current_script)
+            raise e
+            
+    except Exception as e:
+        messagebox.showerror("更新失败", f"更新失败：{str(e)}")
 
 if __name__ == "__main__":
     root = tk.Tk()
