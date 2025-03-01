@@ -1,10 +1,13 @@
 import tkinter as tk
-from tkinter import ttk, messagebox, colorchooser
+from tkinter import ttk, messagebox, colorchooser,filedialog
+import pygame
 import json
 import random
 import requests
 import os
 import sys
+from datetime import datetime
+import webbrowser
 
 CURRENT_VERSION = "1.0.0"
 
@@ -17,7 +20,7 @@ DEFAULT_COLORS = {
 class LotteryApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("抽奖程序")
+        self.root.title("任务决策助手")
         self.data = []
         self.color_settings = {}
         self.filter_color = tk.StringVar(value="全部")
@@ -29,6 +32,10 @@ class LotteryApp:
         self.load_data()
         self.setup_style()
         self.setup_menu()
+        
+        pygame.mixer.init()
+        self.current_music = None
+        self.is_playing = False
 
     def setup_style(self):
         self.style = ttk.Style()
@@ -116,6 +123,7 @@ class LotteryApp:
         ttk.Button(result_frame, text="开始抽奖", command=self.draw_lottery).pack(side=tk.LEFT, padx=5)
         self.result_label = ttk.Label(result_frame, text="", font=("Arial", 12))
         self.result_label.pack(side=tk.LEFT, padx=10)
+        self.setup_shortcut_panel()
 
     def update_color_combo(self):
         self.color_combo["values"] = list(self.color_settings.keys())
@@ -261,8 +269,110 @@ class LotteryApp:
         except Exception as e:
             messagebox.showerror("加载失败", f"加载数据失败：{str(e)}")
 
+    def setup_shortcut_panel(self):
+        # 创建快捷面板框架
+        shortcut_frame = ttk.LabelFrame(self.root, text="快捷功能面板")
+        shortcut_frame.pack(pady=10, padx=10, fill=tk.X)
+
+        # 音乐控制
+        music_frame = ttk.Frame(shortcut_frame)
+        music_frame.pack(pady=5, fill=tk.X)
+        
+        ttk.Button(music_frame, text="选择音乐", command=self.choose_music).pack(side=tk.LEFT, padx=5)
+        ttk.Button(music_frame, text="播放/暂停", command=self.toggle_music).pack(side=tk.LEFT, padx=5)
+        ttk.Button(music_frame, text="停止", command=self.stop_music).pack(side=tk.LEFT, padx=5)
+        self.music_label = ttk.Label(music_frame, text="未选择音乐")
+        self.music_label.pack(side=tk.LEFT, padx=5)
+
+        # 日记/周报功能
+        notes_frame = ttk.Frame(shortcut_frame)
+        notes_frame.pack(pady=5, fill=tk.X)
+        
+        ttk.Button(notes_frame, text="写日记", command=lambda: self.open_notes("diary")).pack(side=tk.LEFT, padx=5)
+        ttk.Button(notes_frame, text="写周报", command=lambda: self.open_notes("weekly")).pack(side=tk.LEFT, padx=5)
+    
     def open_color_settings(self):
         ColorSettingsWindow(self.root, self)
+    
+    def choose_music(self):
+        file_path = filedialog.askopenfilename(
+            filetypes=[("音乐文件", "*.mp3 *.wav")]
+        )
+        if file_path:
+            self.current_music = file_path
+            self.music_label.config(text=os.path.basename(file_path))
+            self.stop_music()
+            pygame.mixer.music.load(file_path)
+            self.toggle_music()
+
+    def toggle_music(self):
+        if not self.current_music:
+            messagebox.showwarning("提示", "请先选择音乐文件")
+            return
+            
+        if self.is_playing:
+            pygame.mixer.music.pause()
+            self.is_playing = False
+        else:
+            pygame.mixer.music.unpause() if pygame.mixer.music.get_pos() > 0 else pygame.mixer.music.play()
+            self.is_playing = True
+
+    def stop_music(self):
+        if pygame.mixer.music.get_busy():
+            pygame.mixer.music.stop()
+            self.is_playing = False
+
+    def open_notes(self, note_type):
+        # 创建保存笔记的目录
+        notes_dir = "notes"
+        if not os.path.exists(notes_dir):
+            os.makedirs(notes_dir)
+        
+        # 根据类型生成文件名
+        today = datetime.now()
+        if note_type == "diary":
+            filename = f"{notes_dir}/日记_{today.strftime('%Y%m%d')}.txt"
+        else:  # weekly
+            filename = f"{notes_dir}/周报_{today.strftime('%Y%m%d')}.txt"
+        
+        # 如果文件不存在，创建并写入模板
+        if not os.path.exists(filename):
+            with open(filename, "w", encoding="utf-8") as f:
+                if note_type == "diary":
+                    f.write(f"# {today.strftime('%Y年%m月%d日')} 日记\n\n")
+                    f.write("今天的心情：\n\n")
+                    f.write("今天的总结：\n\n")
+                else:
+                    f.write(f"# {today.strftime('%Y年%m月%d日')} 周报\n\n")
+                    f.write("本周完成：\n\n")
+                    f.write("下周计划：\n\n")
+                    f.write("遇到的问题：\n\n")
+    
+
+        # 打开一个窗口编辑文件
+        editor_window = tk.Toplevel(self.root)
+        editor_window.title("编辑笔记")
+        editor_window.geometry("600x400")
+
+        # 创建文本框
+        text_area = tk.Text(editor_window, wrap=tk.WORD)
+        text_area.pack(expand=True, fill=tk.BOTH)
+
+        # 加载文件内容
+        with open(filename, "r", encoding="utf-8") as file:
+            text_area.insert(tk.END, file.read())
+
+        # 创建按钮框架
+        button_frame = ttk.Frame(editor_window)
+        button_frame.pack(fill=tk.X)
+
+        # 添加按钮
+        ttk.Button(button_frame, text="保存", command=lambda: self.save_text(filename, text_area)).pack(side=tk.LEFT, padx=5)
+
+    def save_text(self, filename, text_area):
+        with open(filename, "w", encoding="utf-8") as file:
+            file.write(text_area.get(1.0, tk.END))
+        messagebox.showinfo("保存成功", "文件已保存")
 
 class ColorSettingsWindow(tk.Toplevel):
     def __init__(self, parent, app):
@@ -462,6 +572,12 @@ def download_and_replace(download_url, version_info):
             
     except Exception as e:
         messagebox.showerror("更新失败", f"更新失败：{str(e)}")
+
+def __del__(self):
+    try:
+        pygame.mixer.quit()
+    except:
+        pass
 
 if __name__ == "__main__":
     root = tk.Tk()

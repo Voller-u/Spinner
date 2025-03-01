@@ -1,5 +1,5 @@
 {
-  "version": "1.0.6",
+  "version": "1.0.7",
   "download_url": "https://raw.githubusercontent.com/Voller-u/Spinner/master/main.py",
-  "changelog": "修复改变排序规则之后勾选触发错误的bug"
+  "changelog": "增加播放音乐、写日记、写周报功能"
 }
